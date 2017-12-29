@@ -28,13 +28,18 @@ class RealEstateComScraper(object):
             page_listings_details_urls.append(details_url)
         return page_listings_details_urls
 
-    def get_property_details(self, page_listings_details_urls) -> OrderedDict:
-        feature_list = OrderedDict()
+    def get_property_details(self, page_listings_details_urls) -> list:
+        feature_dict = OrderedDict()
+        feature_list = []
         for property in page_listings_details_urls:
             house_request = requests.get(property)
             house_content = house_request.content
             house_soup = BeautifulSoup(house_content, "html.parser")
             house_info = house_soup.find_all("div", {"id": "primaryContent"})
+            feature_dict['Street'] = house_soup.find("span", {"class": "street-address"}).text
+            feature_dict['Locality'] = house_soup.find("span", {"itemprop": "addressLocality"}).text
+            feature_dict['Region'] = house_soup.find("span", {"itemprop": "addressRegion"}).text
+            feature_dict['Post Code'] = house_soup.find("span", {"itemprop": "postalCode"}).text
             for features in house_info:
                 for feature in features.find_all("div", {"class": "featureList"}):
                     for line in feature.find_all("li"):
@@ -42,7 +47,8 @@ class RealEstateComScraper(object):
                             heading = line.text
                             lst = re.findall('[^:]+', heading)
                             if len(lst) > 1:
-                                feature_list[lst[0]] = lst[1]
+                                feature_dict[lst[0]] = lst[1]
                         except AttributeError:
                             pass
+            feature_list.append(feature_dict)
         return feature_list
